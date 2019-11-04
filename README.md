@@ -8,8 +8,10 @@ It uses a headless chrome to execute lighthouse. It also uses the `devtools` thr
 
 ## Usage
 
+Add file ./bin/urls-to-check.js where an array of urls is provided. Import file in lh-audit.js as urlsToCheck. Run program in shell.
+
 ```
-lh-audit <url> [options]
+lh-audit [options]
 
 Options:
   -s, --store-logs  store lighthouse logs in ./storedLogs
