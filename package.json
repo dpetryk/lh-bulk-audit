@@ -1,0 +1,19 @@
+{
+  "name": "lh-audit",
+  "description": "Runs lighthouse performance tests",
+  "bin": "bin/lh-audit.js",
+  "license": "MIT",
+  "private": true,
+  "repository": {
+    "private": true
+  },
+  "dependencies": {
+    "chrome-launcher": "^0.11.2",
+    "colors": "^1.3.3",
+    "commander": "^2.20.0",
+    "compute-gmean": "^1.1.0",
+    "csv-writer": "^1.5.0",
+    "lighthouse": "^5.5.0",
+    "prettier": "^1.18.2"
+  }
+}
