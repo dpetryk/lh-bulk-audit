@@ -2,3 +2,5 @@ node_modules
 tmp
 storedLogs
 .DS_Store
+bin/urls-to-check.js
+urls-to-check.js

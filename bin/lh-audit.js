@@ -10,6 +10,7 @@ const commander = require("commander");
 const computeGmean = require("compute-gmean");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 const urlsToCheck = require("./urls-to-check");
+const moment = require("moment-timezone");
 
 const lighthouseConfig = {
   extends: "lighthouse:default",
@@ -38,7 +39,6 @@ const csvWriter = createCsvWriter({
     { id: "size", title: "TOTAL BYTE WEIGHT" },
   ],
 });
-
 
 async function runLighthouse(lighthouseUrl, storeLogs) {
   const chrome = await chromeLauncher.launch({ chromeFlags: ["--headless"] });
@@ -112,20 +112,19 @@ function oneliner(r, url) {
 }
 
 async function addToLogs(r, url, type) {
-  await csvWriter
-    .writeRecords([
-      {
-        site: url,
-        type: type,
-        p: formatScore(r.performanceScore, false),
-        fcp: formatAudit(r, "firstContentfulPaint", 3 / 15, false),
-        fmp: formatAudit(r, "firstMeaningfulPaint", 1 / 15, false),
-        speed: formatAudit(r, "speedIndex", 4 / 15, false),
-        cpu: formatAudit(r, "firstCpuIdle", 2 / 15, false),
-        tti: formatAudit(r, "timeToInteractive", 5 / 15, false),
-        size: formatBytes(r.totalByteWeight),
-      },
-    ])
+  await csvWriter.writeRecords([
+    {
+      site: url,
+      type: type,
+      p: formatScore(r.performanceScore, false),
+      fcp: formatAudit(r, "firstContentfulPaint", 3 / 15, false),
+      fmp: formatAudit(r, "firstMeaningfulPaint", 1 / 15, false),
+      speed: formatAudit(r, "speedIndex", 4 / 15, false),
+      cpu: formatAudit(r, "firstCpuIdle", 2 / 15, false),
+      tti: formatAudit(r, "timeToInteractive", 5 / 15, false),
+      size: formatBytes(r.totalByteWeight),
+    },
+  ]);
 }
 
 async function logError(url) {
@@ -217,18 +216,50 @@ async function multipleTimes(url, storeLogs) {
   }
 }
 
+function checkTime() {
+  const date = moment().tz("Australia/Sydney");
+  const hour = parseInt(date.format("H"));
+  const weekday = date.weekday();
+
+  return (
+    hour >= 9 && hour <= 18 && weekday !== 0 && weekday !== 6
+  );
+}
+
+async function doScript(startPoint, cmd) {
+  for (let i = startPoint; i < urlsToCheck.length; i++) {
+    if (checkTime()) {
+      console.log("It's a great time to run the script");
+      await multipleTimes(urlsToCheck[i], cmd.storeLogs);
+    } else {
+      console.log("Terrible time to run the script");
+      pauseScript(i, cmd);
+      break;
+    }
+  }
+}
+
+function pauseScript(pausePoint, cmd) {
+  let interval;
+  interval = setInterval(() => {
+    if (checkTime()) {
+      clearInterval(interval);
+      console.log("script resumed at: ", pausePoint);
+      doScript(pausePoint, cmd);
+    }
+  }, 60000);
+}
+
 commander
   .description("Runs lighthouse performance tests")
   .usage("[options]")
   .option("-s, --store-logs", "store lighthouse logs in ./storedLogs")
-  .action(async (cmd) => {
+  .action(async cmd => {
     if (!cmd) {
       commander.outputHelp();
       process.exitCode = 1;
       return;
     }
-    for (let i = 0; i < urlsToCheck.length; i++) {
-      await multipleTimes(urlsToCheck[i], cmd.storeLogs);
-    }
+    doScript(0, cmd);
   })
   .parse(process.argv);
